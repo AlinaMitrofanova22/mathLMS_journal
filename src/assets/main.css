@@ -1,0 +1,229 @@
+@import url("https://fonts.cdnfonts.com/css/arial-2");
+@import "tailwindcss";
+* {
+  font-family: "Arial", sans-serif !important;
+}
+body {
+  background-image: url("Rectangle.png");
+  background-size: cover;
+}
+
+/* Упрощаем и унифицируем правила font-family */
+h2,
+p,
+b,
+a,
+option,
+td,
+th,
+select,
+input,
+button {
+  font-family: "Arial", sans-serif !important; /* Применяем Arial и используем !important для переопределения */
+  font-optical-sizing: auto;
+  font-style: normal;
+  font-weight: 500;
+  text-wrap: pretty;
+  text-align: justify;
+}
+
+.results-list {
+  flex: 1;
+  color: #000;
+  padding-right: 50px;
+}
+
+.results-title {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.result-item {
+  margin-bottom: 5px;
+}
+
+/* Стили для таблицы */
+.results-table th {
+  background-color: #f2f2f2;
+}
+/* Закрепляем первый столбец (ФИО) */
+.results-table th:nth-child(1),
+.results-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  background: white;
+  z-index: 10;
+  min-width: 300px;
+  max-width: 300px;
+}
+
+/* Закрепляем второй столбец (группа) */
+.results-table th:nth-child(2),
+.results-table td:nth-child(2) {
+  position: sticky;
+  left: 300px; /* Подстрой значение под ширину первого столбца */
+  background: white;
+  z-index: 10;
+  min-width: 150px;
+  max-width: 150px;
+}
+
+/* Добавляем тень только для второго столбца (группа) */
+.results-table th:nth-child(2),
+.results-table td:nth-child(2) {
+  box-shadow: 3px 0 5px rgba(0, 0, 0, 0.2);
+}
+
+.results-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Контейнер для прокрутки */
+.table-scroll-container {
+  overflow-x: auto;
+  width: 100%;
+}
+
+
+
+/* Стиль для input в режиме редактирования */
+.table-input {
+  width: calc(100% - 2px);
+  height: calc(100% - 2px);
+  padding: 0;
+  margin: 0;
+}
+
+/* Стиль для ячейки в режиме редактирования (если нужно) */
+.editing-cell {
+  padding: 0; /* Убираем padding у ячейки в режиме редактирования */
+}
+
+/* Стилизация placeholder */
+.editing-cell input::placeholder {
+  color: #999; /* Пример: серый цвет для плейсхолдера */
+  opacity: 1; /* Убедитесь, что placeholder не прозрачный */
+}
+
+/* Скрытие placeholder при фокусе */
+.editing-cell input:focus::placeholder {
+  color: transparent;
+}
+
+
+
+
+
+/* Стили для журнала */
+/* Стили для .group-settings */
+.group-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Стили для .column-choice */
+.column-choice {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.column-choice select {
+  width: 100%;
+  padding: 5px;
+  margin-bottom: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.column-choice .marks {
+  display: flex;
+  flex-direction: column;
+}
+
+.column-choice .marks div {
+  margin-bottom: 5px;
+}
+
+/* Стили для .calculation-method */
+.calculation-method {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.calculation-method select {
+  width: 100%;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+/* Стили для .sum-columns */
+.sum-columns {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.sum-columns div {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.sum-columns input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Стили для .total-formula */
+.total-formula {
+  flex: 1;
+  font-size: 0.8em;
+  min-width: 200px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+.marks {
+  display: flex;
+  flex-direction: column;
+}
+
+.marks {
+  display: flex;
+  flex-direction: column; /* Устанавливаем вертикальное расположение строк */
+}
+
+.mark-row {
+  display: flex; /* Используем flex для выравнивания элементов в строке */
+  align-items: center; /* Выравниваем элементы по вертикали */
+  margin-bottom: 5px; /* Добавляем отступ между строками */
+}
+
+.mark-row > div {
+  width: 80px; /* Фиксированная ширина для текста (можно подобрать значение) */
+  text-align: right; /* Выравниваем текст по правому краю */
+  margin-right: 10px; /* Отступ между текстом и полем ввода */
+}
+
+.formula-input {
+  width: 140px;
+  padding: 2px 4px;
+  font-size: 0.7em;
+  box-sizing: border-box;
+  background-color: white; /* Добавляем белый фон */
+  border: 1px solid #ccc; /* Добавляем обводку */
+  border-radius: 0.5rem; /* Добавляем закругление (можно использовать другое значение) */
+}
