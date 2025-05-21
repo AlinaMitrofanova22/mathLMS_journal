@@ -78,10 +78,10 @@
         />
 
         <!-- Семестр -->
-        <select class="border rounded-xl p-2 bg-white">
-          <option>Семестр</option>
-          <option>1-семестр 24-25</option>
-          <option>2-семестр 24-25</option>
+        <select class="border rounded-xl p-2 bg-white" v-model="selectedSemester">
+          <option value="">Семестр</option>
+          <option value="1">1-семестр 24-25</option>
+          <option value="2">2-семестр 24-25</option>
         </select>
 
         <!-- Кнопка экспорта -->
@@ -105,7 +105,7 @@
               <th
                 v-for="column in columnOrder"
                 :key="column"
-                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative"
                 :class="{
                   'sticky left-0 bg-gray-50 z-10': column === 'ФИО',
                   'sticky bg-gray-50 z-10':
@@ -121,6 +121,19 @@
                 }"
               >
                 {{ column }}
+                <button
+                  v-if="isEditing && column !== 'ФИО' && column !== 'Группа' && column !== 'Сумма Баллов'"
+                  @click="deleteColumn(column)"
+                  class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"
+                >
+                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M6.293 6.293a1 1 0 011.414 0L10 8.586l2.293-2.293a1 1 0 111.414 1.414L11.414 10l2.293 2.293a1 1 0 01-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 01-1.414-1.414L8.586 10 6.293 7.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
               </th>
             </tr>
             <!-- Добавляем строку с максимальными баллами -->
@@ -168,7 +181,7 @@
               <td
                 v-for="column in columnOrder"
                 :key="column"
-                class="px-6 py-4 whitespace-nowrap"
+                class="px-6 py-4 whitespace-nowrap relative"
                 :class="{
                   'sticky left-0 bg-white z-10': column === 'ФИО',
                   'sticky bg-white z-10':
@@ -199,6 +212,20 @@
                     <template v-else>{{ result[column] }}</template>
                   </div>
                 </template>
+                <!-- Кнопка удаления ученика (только для строки с ФИО) -->
+                <button
+                  v-if="isEditing && column === 'ФИО'"
+                  @click="deleteStudent(result.id)"
+                  class="absolute top-1 right-1 text-red-500 hover:text-red-700 focus:outline-none"
+                >
+                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path
+                      fill-rule="evenodd"
+                      d="M6.293 6.293a1 1 0 011.414 0L10 8.586l2.293-2.293a1 1 0 111.414 1.414L11.414 10l2.293 2.293a1 1 0 01-1.414 1.414L10 11.414l-2.293 2.293a1 1 0 01-1.414-1.414L8.586 10 6.293 7.707a1 1 0 010-1.414z"
+                      clip-rule="evenodd"
+                    />
+                  </svg>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -416,7 +443,7 @@ const props = defineProps({
       { name: "Неудовлетворительно", minScore: 0, maxScore: 54 }
     ]
   },
-    shouldAddExamColumn: {
+  shouldAddExamColumn: {
     type: Boolean,
     default: false
   }
@@ -433,6 +460,7 @@ const columnOrder = ref([
   "ФИО",
   "Группа",
   "Сумма Баллов",
+  "ЭКЗ", //Add ЭКЗ here
   "ДЗ1",
   "ДЗ2",
   "ДЗ3",
@@ -451,7 +479,8 @@ const columnOrder = ref([
   "ДЗ14",
 ]);
 
-const resultsData = ref([
+// Данные для первого семестра
+const resultsData1 = ref([
   {
     id: 1,
     ФИО: "Филимонов Максим Дмитриевич",
@@ -472,7 +501,7 @@ const resultsData = ref([
     ДЗ12: "5",
     ДЗ13: "3",
     ДЗ14: "5",
-    ЭКЗ: ""
+    ЭКЗ: "" // Initialize
   },
   {
     id: 2,
@@ -494,7 +523,7 @@ const resultsData = ref([
     ДЗ12: "5",
     ДЗ13: "4",
     ДЗ14: "4",
-    ЭКЗ: ""
+    ЭКЗ: "" // Initialize
   },
   {
     id: 3,
@@ -516,7 +545,7 @@ const resultsData = ref([
     ДЗ12: "2",
     ДЗ13: "2",
     ДЗ14: "2",
-    ЭКЗ: ""
+    ЭКЗ: "" // Initialize
   },
   {
     id: 4,
@@ -538,7 +567,7 @@ const resultsData = ref([
     ДЗ12: "4",
     ДЗ13: "4",
     ДЗ14: "4",
-    ЭКЗ: ""
+    ЭКЗ: "" // Initialize
   },
   {
     id: 5,
@@ -560,7 +589,121 @@ const resultsData = ref([
     ДЗ12: "5",
     ДЗ13: "5",
     ДЗ14: "5",
-    ЭКЗ: ""
+    ЭКЗ: "" // Initialize
+  },
+]);
+
+// Данные для второго семестра
+const resultsData2 = ref([
+  {
+    id: 1,
+    ФИО: "Филимонов Максим Дмитриевич",
+    Группа: "МП-402",
+    ДЗ1: "4",
+    ДЗ2: "5",
+    ДЗ3: "4",
+    ДЗ4: "5",
+    КР1: "5",
+    Тест1: "4",
+    ДЗ7: "4",
+    ДЗ8: "5",
+    ДЗ9: "4",
+    ДЗ10: "5",
+    КР3: "4",
+    Тест3: "5",
+    ДЗ11: "4",
+    ДЗ12: "4",
+    ДЗ13: "5",
+    ДЗ14: "4",
+    ЭКЗ: "" // Initialize
+  },
+  {
+    id: 2,
+    ФИО: "Орлов Вадим Данилович",
+    Группа: "МТ-302",
+    ДЗ1: "4",
+    ДЗ2: "4",
+    ДЗ3: "5",
+    ДЗ4: "5",
+    КР1: "4",
+    Тест1: "4",
+    ДЗ7: "5",
+    ДЗ8: "4",
+    ДЗ9: "4",
+    ДЗ10: "5",
+    КР3: "4",
+    Тест3: "4",
+    ДЗ11: "5",
+    ДЗ12: "4",
+    ДЗ13: "4",
+    ДЗ14: "5",
+    ЭКЗ: "" // Initialize
+  },
+  {
+    id: 3,
+    ФИО: "Казак Ангелина Михайловна",
+    Группа: "МТ-302",
+    ДЗ1: "2",
+    ДЗ2: "2",
+    ДЗ3: "2",
+    ДЗ4: "2",
+    КР1: "2",
+    Тест1: "2",
+    ДЗ7: "2",
+    ДЗ8: "5",
+    ДЗ9: "5",
+    ДЗ10: "5",
+    КР3: "5",
+    Тест3: "5",
+    ДЗ11: "5",
+    ДЗ12: "5",
+    ДЗ13: "5",
+    ДЗ14: "5",
+    ЭКЗ: "" // Initialize
+  },
+  {
+    id: 4,
+    ФИО: "Федорова Алёна Максимовна",
+    Группа: "МТ-302",
+    ДЗ1: "4",
+    ДЗ2: "4",
+    ДЗ3: "4",
+    ДЗ4: "5",
+    КР1: "4",
+    Тест1: "5",
+    ДЗ7: "5",
+    ДЗ8: "4",
+    ДЗ9: "4",
+    ДЗ10: "5",
+    КР3: "5",
+    Тест3: "5",
+    ДЗ11: "4",
+    ДЗ12: "5",
+    ДЗ13: "5",
+    ДЗ14: "5",
+    ЭКЗ: "" // Initialize
+  },
+  {
+    id: 5,
+    ФИО: "Калугин Александр Фёдорович",
+    Группа: "МП-402",
+    ДЗ1: "5",
+    ДЗ2: "4",
+    ДЗ3: "5",
+    ДЗ4: "4",
+    КР1: "5",
+    Тест1: "5",
+    ДЗ7: "5",
+    ДЗ8: "4",
+    ДЗ9: "5",
+    ДЗ10: "4",
+    КР3: "5",
+    Тест3: "5",
+    ДЗ11: "5",
+    ДЗ12: "4",
+    ДЗ13: "5",
+    ДЗ14: "4",
+    ЭКЗ: "" // Initialize
   },
 ]);
 
@@ -591,7 +734,39 @@ const maxScoresDraft = ref(cloneDeep(maxScores.value));
 const resultDraft = ref({});
 const editingCell = ref(null);
 const searchQuery = ref("");
-const filteredResults = ref([...resultsData.value]);
+const selectedSemester = ref(""); // Добавляем ref для выбранного семестра
+
+const currentResultsData = computed(() => {
+  return selectedSemester.value === "2" ? resultsData2.value : resultsData1.value;
+});
+
+const filteredResults = computed(() => {
+  let filtered = [...currentResultsData.value];
+
+  if (selectedLevel1.value) {
+    const level1Value = selectedLevel1.value;
+    const selectedGroup = selectedLevel2.value;
+
+    if (selectedGroup) {
+      filtered = filtered.filter((result) =>
+        result.Группа.startsWith(selectedGroup)
+      );
+    } else {
+      filtered = filtered.filter((result) =>
+        result.Группа.startsWith(level1Value)
+      );
+    }
+  }
+
+  if (searchQuery.value) {
+    const searchTerm = searchQuery.value.toLowerCase();
+    filtered = filtered.filter((result) =>
+      (result["ФИО"] || "").toLowerCase().includes(searchTerm)
+    );
+  }
+
+  return filtered;
+});
 
 // Modal for adding student
 const isAddStudentModalOpen = ref(false);
@@ -615,7 +790,7 @@ const addStudent = () => {
   }
 
   const newStudent = {
-    id: resultsData.value.length > 0 ? Math.max(...resultsData.value.map(s => s.id)) + 1 : 1,
+    id: currentResultsData.value.length > 0 ? Math.max(...currentResultsData.value.map(s => s.id)) + 1 : 1,
     ФИО: newStudentFIO.value,
     Группа: newStudentGroup.value,
   };
@@ -627,8 +802,7 @@ const addStudent = () => {
     }
   });
 
-  resultsData.value.push(newStudent);
-  filteredResults.value = [...resultsData.value];
+  currentResultsData.value.push(newStudent);
 
   // Обновляем resultDraft
   resultDraft.value[newStudent.id] = cloneDeep(newStudent);
@@ -636,6 +810,40 @@ const addStudent = () => {
   closeAddStudentModal();
 };
 
+const deleteColumn = (columnToDelete) => {
+  if (columnToDelete === "ФИО" || columnToDelete === "Группа") {
+    alert("Нельзя удалить  столбец ФИО или Группу.");
+    return;
+  }
+
+  columnOrder.value = columnOrder.value.filter((col) => col !== columnToDelete);
+
+  // Update both datasets
+  resultsData1.value = resultsData1.value.map((result) => {
+    const { [columnToDelete]: deleted, ...rest } = result;
+    return rest;
+  });
+  resultsData2.value = resultsData2.value.map((result) => {
+    const { [columnToDelete]: deleted, ...rest } = result;
+    return rest;
+  });
+
+  delete maxScores.value[columnToDelete];
+  delete maxScoresDraft.value[columnToDelete];
+
+  // Обновляем resultDraft для каждого студента
+  for (const studentId in resultDraft.value) {
+    delete resultDraft.value[studentId][columnToDelete];
+  }
+};
+
+const deleteStudent = (studentId) => {
+  // Delete from both datasets
+  resultsData1.value = resultsData1.value.filter((student) => student.id !== studentId);
+  resultsData2.value = resultsData2.value.filter((student) => student.id !== studentId);
+
+  delete resultDraft.value[studentId];
+};
 
 const setDefaultGradeValues = () => {
   const savedGradesFlat = localStorage.getItem('grades_final_flat');
@@ -659,7 +867,6 @@ const setDefaultGradeValues = () => {
 
 const filterByFIO = (value) => {
   searchQuery.value = value.toLowerCase();
-  filterResults();
 };
 
 const editCell = (result, column) => {
@@ -714,9 +921,10 @@ onMounted(() => {
   }
   adjustInputWidth();
 
-  resultsData.value.forEach((result) => {
-    resultDraft.value[result.id] = cloneDeep(result);
-  });
+  // Вызываем addExamColumn при монтировании, чтобы сразу проставить оценки
+    if (props.grades && props.grades.length >= 4) {
+      addExamColumn(props.grades);
+    }
 });
 
 watch(props, () => {
@@ -726,7 +934,7 @@ watch(props, () => {
 
 watch(() => props.shouldAddExamColumn, (newVal) => {
   if (newVal) {
-    addExamColumn(props.gradeRanges);
+    addExamColumn(props.grades);
   }
 });
 watch(titleText, adjustInputWidth);
@@ -759,7 +967,7 @@ const startEditing = () => {
 
   maxScoresDraft.value = cloneDeep(maxScores.value);
   resultDraft.value = {};
-  resultsData.value.forEach((result) => {
+  currentResultsData.value.forEach((result) => {
     resultDraft.value[result.id] = cloneDeep(result);
   });
 };
@@ -773,14 +981,25 @@ const saveChanges = () => {
   errorMessage.value = "";
 
   maxScores.value = cloneDeep(maxScoresDraft.value);
-  resultsData.value = resultsData.value.map(result => {
-    if (resultDraft.value[result.id]) {
-      return resultDraft.value[result.id];
-    } else {
-      return result;
-    }
-  });
-  filteredResults.value = [...resultsData.value];
+  // Update data according to selected semester
+  if(selectedSemester.value === "1") {
+    resultsData1.value = currentResultsData.value.map(result => {
+        if (resultDraft.value[result.id]) {
+            return { ...resultDraft.value[result.id], ЭКЗ: result.ЭКЗ };
+        } else {
+            return { ...result, ЭКЗ: result.ЭКЗ };
+        }
+    });
+} else {
+    resultsData2.value = currentResultsData.value.map(result => {
+        if (resultDraft.value[result.id]) {
+            return { ...resultDraft.value[result.id], ЭКЗ: result.ЭКЗ };
+        } else {
+            return { ...result, ЭКЗ: result.ЭКЗ };
+        }
+    });
+}
+
   emit('update:grades', props.grades);
 };
 
@@ -792,13 +1011,13 @@ const cancelEditing = () => {
 
   maxScoresDraft.value = cloneDeep(maxScores.value);
   resultDraft.value = {};
-  resultsData.value.forEach((result) => {
+  currentResultsData.value.forEach((result) => {
     resultDraft.value[result.id] = cloneDeep(result);
   });
 };
 
 const goToNextCell = (result, column) => {
-  const currentRowIndex = resultsData.value.findIndex((r) => r.id === result.id);
+  const currentRowIndex = currentResultsData.value.findIndex((r) => r.id === result.id);
   const currentColumnIndex = columnOrder.value.indexOf(column);
 
   let nextRowIndex = currentRowIndex;
@@ -809,13 +1028,17 @@ const goToNextCell = (result, column) => {
     nextColumnIndex = 3;
   }
 
-  if (nextRowIndex >= resultsData.value.length) {
+  // Add this check to handle when the next row has been deleted
+  if (nextRowIndex >= currentResultsData.value.length) {
     editingCell.value = null;
+    return;
+  }
+  if (nextRowIndex < 0) {
     return;
   }
 
   let nextColumn = columnOrder.value[nextColumnIndex];
-  const nextResult = resultsData.value[nextRowIndex];
+  const nextResult = currentResultsData.value[nextRowIndex];
 
   if (nextResult) {
     editingCell.value = nextResult.id + nextColumn;
@@ -840,7 +1063,7 @@ const goToNextCellMaxScores = (column) => {
     nextColumnIndex = 3;
   }
 
-  const nextColumn = columnOrder.value[nextColumnIndex];
+  const nextColumn = columnOrder.value[nextColumn];
   if (nextColumn) {
     editingCell.value = "maxScores" + nextColumn;
     nextTick(() => {
@@ -984,51 +1207,31 @@ const addColumn = () => {
   newColumnName.value = name;
   columnOrder.value.push(newColumnName.value);
 
-  resultsData.value.forEach((result) => {
+   // Add new column to both datasets with default value "0"
+  resultsData1.value.forEach(result => {
+    result[newColumnName.value] = "0";
+  });
+  resultsData2.value.forEach(result => {
     result[newColumnName.value] = "0";
   });
 
   maxScores.value[newColumnName.value] = "5";
   maxScoresDraft.value[newColumnName.value] = "5";
 
-  resultsData.value.forEach((result) => {
+  currentResultsData.value.forEach((result) => {
     if (!resultDraft.value[result.id]) {
       resultDraft.value[result.id] = cloneDeep(result);
     }
     resultDraft.value[result.id][newColumnName.value] = "0";
   });
-
-  filteredResults.value = [...resultsData.value];
   closeAddColumnModal();
 };
 
-const filterResults = () => {
-  let filtered = [...resultsData.value];
-
-  if (selectedLevel1.value) {
-    const level1Value = selectedLevel1.value;
-    const selectedGroup = selectedLevel2.value;
-
-    if (selectedGroup) {
-      filtered = filtered.filter((result) =>
-        result.Группа.startsWith(selectedGroup)
-      );
-    } else {
-      filtered = filtered.filter((result) =>
-        result.Группа.startsWith(level1Value)
-      );
+watch(selectedSemester, (newSemester) => {
+    if (props.grades && props.grades.length >= 4) {
+        addExamColumn(props.grades);
     }
-  }
-
-  if (searchQuery.value) {
-    const searchTerm = searchQuery.value.toLowerCase();
-    filtered = filtered.filter((result) =>
-      (result["ФИО"] || "").toLowerCase().includes(searchTerm)
-    );
-  }
-
-  filteredResults.value = filtered;
-};
+});
 
 const handleFileUpload = (event) => {
   const files = Array.from(event.target.files);
@@ -1079,44 +1282,40 @@ const addExamColumn = (gradeRanges) => {
 
   // Остальная логика выставления оценок
   if (gradeRanges && gradeRanges.length >= 4) {
-    resultsData.value = resultsData.value.map(student => {
-      // Ищем соответствие между student из resultsData и student из studentScores
-      const studentScore = studentScores.value.find(s => s.id === student.id); // Предполагается, что у студентов есть уникальный ID
 
-      // Если totalScore для этого студента найдено, используем его, иначе ставим 0 или какое-то другое значение по умолчанию
-      const totalScore = studentScore ? studentScore.totalScore : 0;
+    const assignExamGrades = (data) => {
+        return data.map(student => {
+            const totalScore = calculateTotalScore(student);
+            let examGrade = '';
 
-      let examGrade = '';
+            if (totalScore >= gradeRanges[0].minScore) {
+                examGrade = '5 (Отлично)';
+            } else if (totalScore >= gradeRanges[1].minScore) {
+                examGrade = '4 (Хорошо)';
+            } else if (totalScore >= gradeRanges[2].minScore) {
+                examGrade = '3 (Удовл.)';
+            } else {
+                examGrade = '2 (Неуд.)';
+            }
+            return { ...student, 'ЭКЗ': examGrade };
+        });
+    };
 
-      if (totalScore >= gradeRanges[0].minScore) {
-        examGrade = '5 (Отлично)';
-      } else if (totalScore >= gradeRanges[1].minScore) {
-        examGrade = '4 (Хорошо)';
-      } else if (totalScore >= gradeRanges[2].minScore) {
-        examGrade = '3 (Удовл.)';
-      } else {
-        examGrade = '2 (Неуд.)';
-      }
+    resultsData1.value = assignExamGrades(resultsData1.value);
+    resultsData2.value = assignExamGrades(resultsData2.value);
 
-      return { ...student, 'ЭКЗ': examGrade };
-    });
-
-    filteredResults.value = [...resultsData.value];
-    maxScores.value['ЭКЗ'] = '';
-    maxScoresDraft.value['ЭКЗ'] = '';
-
-    console.log("Exam grades assigned:", resultsData.value);
+      maxScores.value['ЭКЗ'] = '';
+      maxScoresDraft.value['ЭКЗ'] = '';
+    console.log("Exam grades assigned:", currentResultsData.value);
   }
 };
-
-watch([selectedLevel1, selectedLevel2, searchQuery], filterResults);
 
 defineExpose({
   addExamColumn,
   totalMaxScore,
   columnOrder,
   maxScores,
-  filterResults
+  filteredResults
 });
 </script>
 

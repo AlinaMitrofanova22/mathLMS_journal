@@ -113,14 +113,14 @@
                 type="text"
                 placeholder="МИНИМУМ"
                 class="formula-input"
-                v-model.number="grades[0].minScore"
+                v-model="grades[0].minScore"
                 :disabled="!isEditing"
               />
               <input
                 type="text"
                 placeholder="МАКСИМУМ"
                 class="formula-input"
-                v-model.number="grades[0].maxScore"
+                v-model="grades[0].maxScore"
                 :disabled="!isEditing"
               />
             </div>
@@ -130,14 +130,14 @@
                 type="text"
                 placeholder="МИНИМУМ"
                 class="formula-input"
-                v-model.number="grades[1].minScore"
+                v-model="grades[1].minScore"
                 :disabled="!isEditing"
               />
               <input
                 type="text"
                 placeholder="МАКСИМУМ"
                 class="formula-input"
-                v-model.number="grades[1].maxScore"
+                v-model="grades[1].maxScore"
                 :disabled="!isEditing"
               />
             </div>
@@ -147,14 +147,14 @@
                 type="text"
                 placeholder="МИНИМУМ"
                 class="formula-input"
-                v-model.number="grades[2].minScore"
+                v-model="grades[2].minScore"
                 :disabled="!isEditing"
               />
               <input
                 type="text"
                 placeholder="МАКСИМУМ"
                 class="formula-input"
-                v-model.number="grades[2].maxScore"
+                v-model="grades[2].maxScore"
                 :disabled="!isEditing"
               />
             </div>
@@ -164,18 +164,18 @@
                 type="text"
                 placeholder="МИНИМУМ"
                 class="formula-input"
-                v-model.number="grades[3].minScore"
+                v-model="grades[3].minScore"
                 :disabled="!isEditing"
               />
               <input
                 type="text"
                 placeholder="МАКСИМУМ"
                 class="formula-input"
-                v-model.number="grades[3].maxScore"
+                v-model="grades[3].maxScore"
                 :disabled="!isEditing"
               />
             </div>
-              <button
+            <button
               v-if="isEditing"
               @click="setGradesAndAddExamColumn"
               class="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition cursor-pointer"
@@ -185,55 +185,59 @@
           </div>
         </div>
 
-<div class="sum-columns">
-  <div>Выбор колонок</div>
+        <div class="sum-columns">
+          <div>Выбор колонок</div>
 
-  <template v-if="isEditing">
-    <div class="columns-checkbox-list">
-      <div
-        v-for="column in availableColumns"
-        :key="column"
-        class="checkbox-item"
-      >
-        <input
-          type="checkbox"
-          :id="'column-' + column"
-          :value="column"
-          v-model="localSelectedColumns"
-          class="checkbox-input"
-        />
-        <label :for="'column-' + column" class="checkbox-label">
-          {{ column }}
-        </label>
-      </div>
-    </div>
-    <button
-      @click="selectAllColumns"
-      class="mt-2 px-4 py-1 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition cursor-pointer"
-    >
-      Выбрать все
-    </button>
-  </template>
+          <template v-if="isEditing">
+            <div class="columns-checkbox-list">
+              <div
+                v-for="column in availableColumns"
+                :key="column"
+                class="checkbox-item"
+              >
+                <input
+                  type="checkbox"
+                  :id="'column-' + column"
+                  :value="column"
+                  v-model="localSelectedColumns"
+                  class="checkbox-input"
+                />
+                <label :for="'column-' + column" class="checkbox-label">
+                  {{ column }}
+                </label>
+              </div>
+            </div>
+            <button
+              @click="selectAllColumns"
+              class="mt-2 px-4 py-1 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 transition cursor-pointer"
+            >
+              Выбрать все
+            </button>
+          </template>
 
-  <template v-else>
-    <div class="columns-list">
-      <div
-        v-for="column in availableColumns"
-        :key="column"
-        class="column-item"
-      >
-        <span class="column-label">{{ column }}</span>
-        <span v-if="localSelectedColumns.includes(column)" class="selected-indicator">✓</span>
-      </div>
-    </div>
-  </template>
-</div>
+          <template v-else>
+            <div class="columns-list">
+              <div
+                v-for="column in availableColumns"
+                :key="column"
+                class="column-item"
+              >
+                <span class="column-label">{{ column }}</span>
+                <span v-if="localSelectedColumns.includes(column)" class="selected-indicator">✓</span>
+              </div>
+            </div>
+          </template>
+        </div>
 
         <div class="calculation-method">
           <div>Выбор способа подсчета</div>
-          <select class="border rounded-xl p-2 bg-white">
-            <option>Суммирование</option>
-            <option>Процент</option>
+          <select
+            class="border rounded-xl p-2 bg-white"
+            v-model="calculationMethod"
+            @change="updateGradeRanges"
+          >
+            <option value="sum">Суммирование</option>
+            <option value="percentage">Процент</option>
           </select>
           <div class="max-points mt-2">
             <div>Общее количество баллов</div>
@@ -352,10 +356,8 @@
 </template>
 
 <script setup>
-// Переменные границ
 import { ref, defineProps, defineEmits, computed, watch, inject, onMounted } from "vue";
 import { useStorage } from '@vueuse/core';
-
 
 const props = defineProps({
     topic: {
@@ -393,7 +395,7 @@ const props = defineProps({
     },
     students: {
         type: Array,
-        default: () => [] // Массив объектов с данными учеников
+        default: () => []
     }
 });
 
@@ -408,25 +410,52 @@ const isEditingGlobal = inject("isEditingGlobal");
 const localSelectedColumns = ref([...props.selectedColumns]);
 const topicTitle = ref(props.topic);
 const topicText = ref(props.topic);
+const calculationMethod = ref('sum'); // Добавлено: способ подсчета
 
-//  Функция для сохранения оценок в localStorage
+// Функция для сохранения оценок в localStorage
 const saveGradesToLocalStorage = (grades) => {
     localStorage.setItem('literature_grades', JSON.stringify(grades));
     console.log('Сохраняем оценки в localStorage:', grades);
 };
 
-//  Функция для загрузки оценок из localStorage
+// Функция для загрузки оценок из localStorage
 const loadGradesFromLocalStorage = () => {
     const storedGrades = localStorage.getItem('literature_grades');
     if (storedGrades) {
         console.log('Загружаем оценки из localStorage:', JSON.parse(storedGrades));
         return JSON.parse(storedGrades);
     }
-    return props.grades; // Вернуть props.grades, а не null
+    return props.grades;
 };
 
 const initialGrades = loadGradesFromLocalStorage();
 const grades = ref(JSON.parse(JSON.stringify(initialGrades)));
+
+// Функция для обновления границ оценок в зависимости от выбранного метода
+const updateGradeRanges = () => {
+  if (calculationMethod.value === 'percentage') {
+    // Устанавливаем процентные границы
+    grades.value = [
+      { name: 'Отлично', minScore: '85', maxScore: '100' }, // Убираем '%'
+      { name: 'Хорошо', minScore: '75', maxScore: '84' },  // Убираем '%'
+      { name: 'Удовл.', minScore: '49', maxScore: '74' },  // Убираем '%'
+      { name: 'Неуд.', minScore: '0', maxScore: '49' }   // Убираем '%'
+    ];
+  } else {
+    // Возвращаем обычные числовые границы
+    const maxTotal = selectedColumnsTotal.value;
+    grades.value = [
+      { name: 'Отлично', minScore: Math.round(maxTotal * 0.85), maxScore: maxTotal },
+      { name: 'Хорошо', minScore: Math.round(maxTotal * 0.7), maxScore: Math.round(maxTotal * 0.84) },
+      { name: 'Удовл.', minScore: Math.round(maxTotal * 0.55), maxScore: Math.round(maxTotal * 0.69) },
+      { name: 'Неуд.', minScore: 0, maxScore: Math.round(maxTotal * 0.54) }
+    ];
+  }
+
+  // Сохраняем изменения
+  saveGradesToLocalStorage(grades.value);
+  emit('update:grades', grades.value);
+};
 
 // Данные для выпадающего списка
 const options = ref([
@@ -501,8 +530,8 @@ const options = ref([
     },
 ]);
 
-const selectedLevel1 = ref(""); // Устанавливаем значение по умолчанию для "Направление"
-const selectedLevel2 = ref(""); // Устанавливаем значение по умолчанию для "Поднаправлен
+const selectedLevel1 = ref("");
+const selectedLevel2 = ref("");
 
 // Вычисляемое свойство для второго уровня выпадающего списка
 const getLevel2Options = computed(() => {
@@ -510,15 +539,7 @@ const getLevel2Options = computed(() => {
         const selectedOption = options.value.find(
             (option) => option.value === selectedLevel1.value
         );
-        console.log(
-            "getLevel2Options: selectedLevel1.value",
-            selectedLevel1.value
-        );
-        console.log("getLevel2Options: options.value", options.value); // Покажите весь объект options
-        console.log("getLevel2Options: selectedOption", selectedOption);
-        const result = selectedOption ? selectedOption.children : [];
-        console.log("getLevel2Options: result", result);
-        return result;
+        return selectedOption ? selectedOption.children : [];
     }
     return [];
 });
@@ -560,43 +581,38 @@ const selectAllColumns = () => {
 
 // Вычисляем сумму баллов по выбранным колонкам для каждого ученика
 const studentScores = computed(() => {
-    return props.students.map(student => {
-        let total = 0;
-        localSelectedColumns.value.forEach(column => {
-            // Предполагаем, что у каждого ученика есть свойства, соответствующие именам колонок
-            if (student[column] !== undefined) {
-                total += parseFloat(student[column]) || 0;
-            }
-        });
-        return {
-            ...student,
-            totalScore: total
-        };
+  return props.students.map(student => {
+    let total = 0;
+    localSelectedColumns.value.forEach(column => {
+      total += parseFloat(student[column]) || 0;
     });
+    return { ...student, totalScore: total };
+  });
 });
 
 const setGradesAndAddExamColumn = () => {
-    // Используем максимальную сумму из studentScores или selectedColumnsTotal
-    const maxTotal = Math.max(
-        ...studentScores.value.map(s => s.totalScore),
-        selectedColumnsTotal.value
-    );
+    if (calculationMethod.value === 'percentage') {
+      // Обновляем значения переменных
+      grades.value = [
+        { name: 'Отлично', minScore: '85', maxScore: '100' },
+        { name: 'Хорошо', minScore: '75', maxScore: '84' },
+        { name: 'Удовл.', minScore: '49', maxScore: '74' },
+        { name: 'Неуд.', minScore: '0', maxScore: '49' }
+      ];
+    } else {
+        const maxTotal = selectedColumnsTotal.value;
+        grades.value = [
+            { name: 'Отлично', minScore: Math.round(maxTotal * 0.85), maxScore: maxTotal },
+            { name: 'Хорошо', minScore: Math.round(maxTotal * 0.7), maxScore: Math.round(maxTotal * 0.84) },
+            { name: 'Удовл.', minScore: Math.round(maxTotal * 0.55), maxScore: Math.round(maxTotal * 0.69) },
+            { name: 'Неуд.', minScore: 0, maxScore: Math.round(maxTotal * 0.54) }
+        ];
+    }
 
-    // Устанавливаем диапазоны оценок на основе максимальной суммы
-    grades.value = [
-        { name: 'Отлично', minScore: Math.round(maxTotal * 0.85), maxScore: maxTotal },
-        { name: 'Хорошо', minScore: Math.round(maxTotal * 0.7), maxScore: Math.round(maxTotal * 0.84) },
-        { name: 'Удовл.', minScore: Math.round(maxTotal * 0.55), maxScore: Math.round(maxTotal * 0.69) },
-        { name: 'Неуд.', minScore: 0, maxScore: Math.round(maxTotal * 0.54) }
-    ];
-
-    // Вызываем prop addExamColumn, передавая текущие grades
-    props.addExamColumn(grades.value);
-
-    // Синхронизируем оценки с родителем
+    saveGradesToLocalStorage(grades.value);
     emit('update:grades', grades.value);
+    emit('request-add-exam-column');
 };
-
 
 // Методы компонента
 const toggleCollapse = () => {
@@ -612,7 +628,7 @@ const startEditing = () => {
 
 const cancelEditing = () => {
     topicTitle.value = props.topic;
-    topicText.value = props.topic; // Восстанавливаем topicText
+    topicText.value = props.topic;
     isEditing.value = false;
     errorMessage.value = "";
     grades.value = JSON.parse(JSON.stringify(loadGradesFromLocalStorage()));
@@ -648,8 +664,13 @@ const setDefaultGradeValues = () => {
 onMounted(() => {
     setDefaultGradeValues();
 });
+
 watch(studentScores, (newScores) => {
   emit('update:student-scores', newScores);
+}, { deep: true });
+
+watch(grades, (newGrades) => {
+  emit('update:grade-ranges', newGrades);
 }, { deep: true });
 
 // Watch для автоматической установки значений при изменении totalMaxScore
@@ -659,89 +680,26 @@ watch(
         grades.value[0].maxScore = newTotalMaxScore;
     }
 );
+
 const filterByFIO = () => {};
 const exportToExcel = () => {};
-
-// Переменные границ
-const a1 = useStorage('a1', null);
-const a2 = useStorage('a2', null);
-const b1 = useStorage('b1', null);
-const b2 = useStorage('b2', null);
-const c1 = useStorage('c1', null);
-const c2 = useStorage('c2', null);
-const d1 = useStorage('d1', null);
-const d2 = useStorage('d2', null);
-
-const saveGradeBounds = () => {
-    // Валидация и обработка ошибок для каждой границы (пример)
-    if (grades.value[0].minScore !== null && isNaN(Number(grades.value[0].minScore))) {
-        errorMessage.value = "Минимум для Отлично должен быть числом!";
-        return;
-    }
-    if (grades.value[0].maxScore !== null && isNaN(Number(grades.value[0].maxScore))) {
-        errorMessage.value = "Максимум для Отлично должен быть числом!";
-        return;
-    }
-    if (grades.value[1].minScore !== null && isNaN(Number(grades.value[1].minScore))) {
-        errorMessage.value = "Минимум для Хорошо должен быть числом!";
-        return;
-    }
-    if (grades.value[1].maxScore !== null && isNaN(Number(grades.value[1].maxScore))) {
-        errorMessage.value = "Максимум для Хорошо должен быть числом!";
-        return;
-    }
-    if (grades.value[2].minScore !== null && isNaN(Number(grades.value[2].minScore))) {
-        errorMessage.value = "Минимум для Удовл. должен быть числом!";
-        return;
-    }
-    if (grades.value[2].maxScore !== null && isNaN(Number(grades.value[2].maxScore))) {
-        errorMessage.value = "Максимум для Удовл. должен быть числом!";
-        return;
-    }
-    if (grades.value[3].minScore !== null && isNaN(Number(grades.value[3].minScore))) {
-        errorMessage.value = "Минимум для Неуд. должен быть числом!";
-        return;
-    }
-    if (grades.value[3].maxScore !== null && isNaN(Number(grades.value[3].maxScore))) {
-        errorMessage.value = "Максимум для Неуд. должен быть числом!";
-        return;
-    }
-    if (grades.value[0].minScore !== null && grades.value[0].maxScore !== null && Number(grades.value[0].minScore) > Number(grades.value[0].maxScore)) {
-        errorMessage.value = "Минимум для Отлично не может быть больше максимума!";
-        return;
-    }
-     if (grades.value[1].minScore !== null && grades.value[1].maxScore !== null && Number(grades.value[1].minScore) > Number(grades.value[1].maxScore)) {
-        errorMessage.value = "Минимум для Хорошо не может быть больше максимума!";
-        return;
-    }
-    if (grades.value[2].minScore !== null && grades.value[2].maxScore !== null && Number(grades.value[2].minScore) > Number(grades.value[2].maxScore)) {
-        errorMessage.value = "Минимум для Удовл. не может быть больше максимума!";
-        return;
-    }
-    if (grades.value[3].minScore !== null && grades.value[3].maxScore !== null && Number(grades.value[3].minScore) > Number(grades.value[3].maxScore)) {
-        errorMessage.value = "Минимум для Неуд. не может быть больше максимума!";
-        return;
-    }
-
-  errorMessage.value = ""; // Сброс сообщения об ошибке, если валидация прошла успешно
-};
-
-// Функция валидации границ и сохранения
+// Валидация границ и сохранение
 const saveChanges = () => {
-    if (!topicTitle.value.trim() || !topicText.value.trim()) {  // Валидация для topicText
+    if (!topicTitle.value.trim() || !topicText.value.trim()) {
         errorMessage.value = "Все поля должны быть заполнены!";
         return;
     }
 
-    //  вызов saveGradeBounds уже выполняет валидацию
-    saveGradeBounds()
-
-    // Если есть ошибки, прекращаем сохранение
-    if (errorMessage.value) {
-      return;
+    if (calculationMethod.value === 'sum') {
+        saveGradeBoundsForSum();
+    } else {
+        saveGradeBoundsForPercentage();
     }
 
-    // Обновление оценки на основе текущих границ
+    if (errorMessage.value) {
+        return;
+    }
+
     grades.value = [
         { name: 'Отлично', minScore: grades.value[0].minScore, maxScore: grades.value[0].maxScore },
         { name: 'Хорошо', minScore: grades.value[1].minScore, maxScore: grades.value[1].maxScore },
@@ -755,127 +713,55 @@ const saveChanges = () => {
     saveGradesToLocalStorage(grades.value);
     emit('update:grades', grades.value);
 };
+// Функция валидации границ для способа суммирования
+const saveGradeBoundsForSum = () => {
+    // Валидация и обработка ошибок для каждой границы (пример)
+    for (let i = 0; i < 4; i++) {
+        if (grades.value[i].minScore !== null && isNaN(Number(grades.value[i].minScore))) {
+            errorMessage.value = `Минимум для ${grades.value[i].name} должен быть числом!`;
+            return;
+        }
+        if (grades.value[i].maxScore !== null && isNaN(Number(grades.value[i].maxScore))) {
+            errorMessage.value = `Максимум для ${grades.value[i].name} должен быть числом!`;
+            return;
+        }
+        if (grades.value[i].minScore !== null && grades.value[i].maxScore !== null && Number(grades.value[i].minScore) > Number(grades.value[i].maxScore)) {
+            errorMessage.value = `Минимум для ${grades.value[i].name} не может быть больше максимума!`;
+            return;
+        }
+    }
+    errorMessage.value = ""; // Сброс сообщения об ошибке, если валидация прошла успешно
+};
+
+// Функция валидации границ для способа подсчета в процентах
+const saveGradeBoundsForPercentage = () => {
+    for (let i = 0; i < 4; i++) {
+        if (grades.value[i].minScore !== null && isNaN(Number(grades.value[i].minScore))) {
+            errorMessage.value = `Минимум для ${grades.value[i].name} должен быть числом!`;
+            return;
+        }
+        if (grades.value[i].maxScore !== null && isNaN(Number(grades.value[i].maxScore))) {
+            errorMessage.value = `Максимум для ${grades.value[i].name} должен быть числом!`;
+            return;
+        }
+        if (grades.value[i].minScore !== null && grades.value[i].maxScore !== null && Number(grades.value[i].minScore) > Number(grades.value[i].maxScore)) {
+            errorMessage.value = `Минимум для ${grades.value[i].name} не может быть больше максимума!`;
+            return;
+        }
+    }
+    errorMessage.value = "";
+};
+
+// Переменные границ
+const a1 = useStorage('a1', null);
+const a2 = useStorage('a2', null);
+const b1 = useStorage('b1', null);
+const b2 = useStorage('b2', null);
+const c1 = useStorage('c1', null);
+const c2 = useStorage('c2', null);
+const d1 = useStorage('d1', null);
+const d2 = useStorage('d2', null);
 </script>
-/* Стили для чекбоксов */
-.columns-checkbox-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 150px;
-  overflow-y: auto;
-  padding: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.checkbox-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.checkbox-input {
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
-}
-
-.checkbox-label {
-  cursor: pointer;
-  user-select: none;
-}
-
-/* Стили для списка колонок в режиме просмотра */
-.columns-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 150px;
-  overflow-y: auto;
-  padding: 8px;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-}
-
-.column-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 8px;
-  border-radius: 4px;
-  background-color: #f8fafc;
-}
-
-.column-label {
-  font-size: 14px;
-}
-
-.selected-indicator {
-  color: #3b82f6;
-  font-weight: bold;
-}
-
-.group-settings {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 20px;
-}
-
-.column-choice,
-.sum-columns,
-.calculation-method {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 40%;
-}
-
-.sum-columns {
-  width: 25%;
-}
-
-.calculation-method {
-  width: 35%;
-}
-
-.marks {
-  margin-top: 10px;
-  width: 100%;
-}
-
-.mark-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 5px;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.mark-row > div {
-  margin-right: 10px;
-}
-
-.formula-input {
-  padding: 5px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  width: 100px;
-}
-
-.sum-columns select {
-  min-height: 120px;
-}
-
-.max-points input {
-  width: 100%;
-  text-align: center;
-}
-
-.formula-input:disabled {
-  cursor: not-allowed;
-}
-
-/* Стиль для кнопки "Со
 
 <style scoped>
 /* Стили для чекбоксов */

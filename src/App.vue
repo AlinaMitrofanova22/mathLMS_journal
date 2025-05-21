@@ -30,23 +30,26 @@
       </div>
 
       <Course_card
-  ref="courseCard"
-  :isEditingGlobal="isEditingGlobal"
-  :grade-ranges="gradeRanges"
-  :student-scores="studentScores"
-  @update:grade-ranges="updateGradeRanges"
-/>
+      ref="courseCard"
+      :isEditingGlobal="isEditingGlobal"
+      :grade-ranges="gradeRanges"
+      :student-scores="studentScores"
+      :should-add-exam-column="shouldAddExamColumn"
+      @update:grade-ranges="updateGradeRanges"
+    />
 
-      <Literature
-  :totalMaxScore="computedTotalMaxScore"
-  :columns="filteredColumns"
-  :selectedColumns.sync="selectedColumns"
-  :maxScores="courseCard?.maxScores"
-  :grade-ranges="gradeRanges"
-  @update:grade-ranges="updateGradeRanges"
-  @update:student-scores="updateStudentScores"
-  :addExamColumn="addExamColumn"
-/>
+    <Literature
+      :totalMaxScore="computedTotalMaxScore"
+      :columns="filteredColumns"
+      :selectedColumns.sync="selectedColumns"
+      :maxScores="courseCard?.maxScores"
+      :grade-ranges="gradeRanges"
+      :students="courseCard?.resultsData || []"
+      @update:grade-ranges="updateGradeRanges"
+      @update:student-scores="updateStudentScores"
+      @request-add-exam-column="handleAddExamColumn"
+    />
+
       <Practice_card />
       <Subject_card />
       <Exam_card :totalMaxScore="computedTotalMaxScore" />
@@ -74,6 +77,7 @@ const selectedColumns = ref([]);
 const searchQuery = ref("");
 const studentScores = ref([]);
 
+
 // Состояние для границ оценок
 const gradeRanges = ref([
   { name: 'Отлично', minScore: 85, maxScore: 100 },
@@ -81,29 +85,46 @@ const gradeRanges = ref([
   { name: 'Удовл.', minScore: 55, maxScore: 69 },
   { name: 'Неуд.', minScore: 0, maxScore: 54 }
 ]);
+
+// Обработчик обновления studentScores из Literature
 const updateStudentScores = (newScores) => {
   studentScores.value = newScores;
+  console.log("Student scores updated:", newScores);
 };
 
-
-// Загрузка сохраненных границ из localStorage при монтировании
-onMounted(() => {
-  const savedGrades = localStorage.getItem('gradeRanges');
-  if (savedGrades) {
-    gradeRanges.value = JSON.parse(savedGrades);
-  }
-});
-
-// Обработчик обновления границ оценок
+// Обработчик обновления gradeRanges из Literature
 const updateGradeRanges = (newRanges) => {
   gradeRanges.value = newRanges;
   localStorage.setItem('gradeRanges', JSON.stringify(newRanges));
+  console.log("Grade ranges updated:", newRanges);
 
   // Обновляем оценки в Course_card
   if (courseCard.value) {
     courseCard.value.addExamColumn(newRanges);
   }
 };
+
+// Загрузка сохраненных границ из localStorage
+onMounted(() => {
+  const savedGrades = localStorage.getItem('gradeRanges');
+  if (savedGrades) {
+    gradeRanges.value = JSON.parse(savedGrades);
+    console.log("Loaded grade ranges from localStorage:", gradeRanges.value);
+  }
+});
+
+const shouldAddExamColumn = ref(false);
+
+const handleAddExamColumn = () => {
+  shouldAddExamColumn.value = true;
+  // Вызываем addExamColumn сразу после установки флага
+  nextTick(() => {
+    if (courseCard.value) {
+      courseCard.value.addExamColumn(gradeRanges.value);
+    }
+  });
+};
+
 
 // Обработчик поиска
 const handleSearch = () => {
@@ -118,6 +139,7 @@ watch(
   (newValue) => {
     if (newValue !== undefined) {
       totalMaxScoreFromCourseCard.value = newValue;
+      console.log("Total max score updated:", newValue);
     }
   },
   { immediate: true }
@@ -126,6 +148,12 @@ watch(
 // Получаем список колонок из courseCard с фильтрацией служебных
 const filteredColumns = computed(() => {
   if (!courseCard.value?.columnOrder) return [];
+  console.log("Filtered columns:", courseCard.value.columnOrder.filter(column =>
+    column !== 'ФИО' &&
+    column !== 'Группа' &&
+    column !== 'Сумма Баллов' &&
+    column !== 'ЭКЗ'
+  ));
 
   return courseCard.value.columnOrder.filter(column =>
     column !== 'ФИО' &&
@@ -137,20 +165,30 @@ const filteredColumns = computed(() => {
 
 // Вычисляемое свойство для передачи общего количества баллов
 const computedTotalMaxScore = computed(() => {
+  console.log("Computed total max score:", totalMaxScoreFromCourseCard.value);
   return totalMaxScoreFromCourseCard.value;
 });
 
 // Переключение режима редактирования
 const toggleGlobalEditing = () => {
   isEditingGlobal.value = !isEditingGlobal.value;
+  console.log("Editing mode:", isEditingGlobal.value ? "ON" : "OFF");
 };
 
 // Передаем состояние редактирования дочерним компонентам
 provide("isEditingGlobal", isEditingGlobal);
 
+// Метод для добавления столбца "ЭКЗ" и проставления оценок
+const addExamColumn = (gradeRanges) => {
+  if (courseCard.value) {
+    console.log("Adding exam column with grades:", gradeRanges);
+    courseCard.value.addExamColumn(gradeRanges);
+  }
+};
+
 // Отладочный вывод при изменении выбранных колонок
 watch(selectedColumns, (newVal) => {
-  console.log("Выбранные колонки:", newVal);
+  console.log("Selected columns changed:", newVal);
 }, { deep: true });
 
 // Метод для обновления выбранных колонок
@@ -158,14 +196,6 @@ const updateSelectedColumns = (newColumns) => {
   selectedColumns.value = [...newColumns];
 };
 
-// Метод для добавления столбца "ЭКЗ" и проставления оценок
-const addExamColumn = (gradeRanges) => {
-  if (courseCard.value) {
-    courseCard.value.addExamColumn(gradeRanges);
-  }
-};
-
-// Экспортируем методы для доступа из дочерних компонентов
 defineExpose({
   updateSelectedColumns
 });
